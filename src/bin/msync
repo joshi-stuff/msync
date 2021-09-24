@@ -1,0 +1,5 @@
+#!/bin/env joshi
+
+require('../lib/msync')(argv);
+
+// vi: ft=javascript
