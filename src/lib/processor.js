@@ -40,11 +40,9 @@ processor.process = function (
 		.sort()
 		.forEach(function (file_name) {
 			delete_file(
-				fs.join(
-					fs.join(source_path, file_name),
-					fs.join(target_path, file_name),
-					options
-				)
+				fs.join(source_path, file_name),
+				fs.join(target_path, file_name),
+				options
 			);
 			callback.deleted(file_name);
 		});
