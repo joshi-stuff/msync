@@ -71,7 +71,12 @@ status.diff = function () {
 				from: fromFileInfo,
 				to: undefined,
 			};
-		} else if (toFileInfo.status != fromFileInfo.status) {
+		} else if (
+			toFileInfo.ctime !== fromFileInfo.ctime ||
+			toFileInfo.mtime !== fromFileInfo.mtime ||
+			toFileInfo.size !== fromFileInfo.size ||
+			toFileInfo.header.hash !== fromFileInfo.header.hash
+		) {
 			comparison[filePath] = {
 				status: 'M',
 				from: fromFileInfo,
@@ -161,6 +166,7 @@ function get_file_info(file_path) {
 	}
 
 	return {
+		ctime: statbuf.time.change,
 		mtime: statbuf.time.modification,
 		size: statbuf.size,
 		header: {

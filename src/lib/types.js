@@ -24,6 +24,7 @@
  * Structure holding opaque information about a file status.
  *
  * @typedef {object} FileInfo
+ * @property {number} ctime
  * @property {number} mtime
  * @property {number} size
  * @property {string} header.hash
