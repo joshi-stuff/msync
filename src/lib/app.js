@@ -1,9 +1,8 @@
-const fs = require('fs');
 const term = require('term');
 
 const config = require('./config.js');
-const processor = require('./processor.js');
 const status = require('./status.js');
+const sync = require('./sync.js');
 
 const println = term.println;
 
@@ -92,51 +91,7 @@ app.diff = function () {
  * @returns {void}
  */
 app.sync = function () {
-	println('Comparing...');
-	const comparison = status.diff();
-
-	const write_period_ms = 15000;
-	var last_write_ms = Date.now();
-
-	function maybe_save_status() {
-		if (Date.now() - last_write_ms > write_period_ms) {
-			status.save();
-			last_write_ms = Date.now();
-		}
-	}
-
-	println('Synchronizing...');
-	processor.process(
-		config.source_path,
-		config.target_path,
-		comparison,
-		{
-			transcode_flac: config.transcode_flac,
-		},
-		{
-			copied: function (file_name) {
-				println('Copied: ' + file_name);
-
-				status.last[file_name] = comparison[file_name].to;
-				maybe_save_status();
-			},
-
-			deleted: function (file_name) {
-				println('Deleted: ' + file_name);
-
-				delete status.last[file_name];
-				maybe_save_status();
-			},
-
-			detected_cpus: function (cpu_count) {
-				println('Detected CPUs: ' + cpu_count);
-			},
-		}
-	);
-
-	status.save();
-
-	println('Done');
+	sync();
 };
 
 /**

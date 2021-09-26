@@ -45,3 +45,5 @@ const ModificationStatus = {
  * @typedef {object} ProcessOptions
  * @property {boolean} transcode_flac
  */
+
+// TODO: processor callback

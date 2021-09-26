@@ -10,6 +10,7 @@ const processor = {};
 
 /**
  *
+ * @param {number} cpu_count
  * @param {string} source_path
  * @param {string} target_path
  * @param {Comparison} comparison
@@ -20,16 +21,13 @@ const processor = {};
  * @throws {Error}
  */
 processor.process = function (
+	cpu_count,
 	source_path,
 	target_path,
 	comparison,
 	options,
 	callback
 ) {
-	const cpu_count = get_cpu_count();
-
-	callback.detected_cpus(cpu_count);
-
 	// First delete to avoid removing files after they have been added (for
 	// example, if we change from mp3 to flac in the source.)
 	Object.entries(comparison)
@@ -93,6 +91,7 @@ processor.process = function (
 			});
 
 			children[pid] = file_name;
+			callback.queue_updated(children);
 		});
 
 	// Wait for remaining children
@@ -108,6 +107,7 @@ processor.process = function (
 		callback.copied(finished_file_name);
 
 		delete children[pid];
+		callback.queue_updated(children);
 	});
 };
 
@@ -162,19 +162,6 @@ function delete_file(source_file, target_file, options) {
 	} else {
 		fs.unlink(target_file);
 	}
-}
-
-/**
- *
- * @returns {number}
- * @throws {Error}
- */
-function get_cpu_count() {
-	const cpuinfo = fs.read_file('/proc/cpuinfo');
-
-	return cpuinfo.split('\n').filter(function (line) {
-		return line.startsWith('processor');
-	}).length;
 }
 
 /**
