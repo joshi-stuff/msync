@@ -37,6 +37,7 @@ function showHelp() {
 	println2('');
 	println2('  · init <source path> [-t]');
 	println2('  · diff');
+	println2('  · refresh');
 	println2('  · sync [-y]');
 	println2('  · touch');
 	println2('');
@@ -50,6 +51,10 @@ function showHelp() {
 	println2('Diff command:');
 	println2('');
 	println2('  Compare mirror and source directories.');
+	println2('');
+	println2('Refresh command:');
+	println2('');
+	println2('  Mark directories to be synchronized on next sync.');
 	println2('');
 	println2('Sync command:');
 	println2('');

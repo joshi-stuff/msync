@@ -1,6 +1,7 @@
 const term = require('term');
 
 const config = require('./config.js');
+const refresh = require('./refresh.js');
 const status = require('./status.js');
 const sync = require('./sync.js');
 
@@ -83,6 +84,15 @@ app.diff = function () {
 		});
 
 	println('Done');
+};
+
+/**
+ *
+ *
+ * @returns {void}
+ */
+app.refresh = function () {
+	refresh();
 };
 
 /**
