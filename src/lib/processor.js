@@ -1,6 +1,10 @@
 const fs = require('fs');
 const io = require('io');
 const proc = require('proc');
+const term = require('term');
+
+const log_dir = '/tmp/msync.log';
+const println2 = term.println2;
 
 /**
  * @exports processor
@@ -28,6 +32,10 @@ processor.process = function (
 	options,
 	callback
 ) {
+	// Empty log directory
+	fs.rmdir(log_dir, true);
+	fs.mkdirp(log_dir);
+
 	// First delete to avoid removing files after they have been added (for
 	// example, if we change from mp3 to flac in the source.)
 	Object.entries(comparison)
@@ -68,7 +76,13 @@ processor.process = function (
 
 				if (result.exit_status !== 0) {
 					throw new Error(
-						'Process of file failed: ' + finished_file_name
+						'Process of file failed: ' +
+							finished_file_name +
+							' (see ' +
+							log_dir +
+							'/' +
+							pid +
+							')'
 					);
 				}
 
@@ -107,6 +121,9 @@ processor.process = function (
 		delete children[pid];
 		callback.queue_updated(children);
 	});
+
+	// Remove log directory
+	fs.rmdir(log_dir, true);
 };
 
 /**
@@ -119,29 +136,34 @@ processor.process = function (
  * @throws {Error}
  */
 function copy_file(source_file, target_file, options) {
-	const target_dir = fs.dirname(target_file);
-	const rewrite_target_dir = rewrite_path_case(target_dir);
+	const fd = io.create(log_dir + '/' + proc.getpid());
+
+	io.dup2(fd, 1);
+	io.dup2(fd, 2);
 
 	try {
+		const target_dir = fs.dirname(target_file);
+		const rewrite_target_dir = rewrite_path(target_dir);
+
 		fs.mkdirp(rewrite_target_dir);
+
+		if (source_file.endsWith('.flac') && options.transcode_flac) {
+			proc.exec('ffmpeg', [
+				'-i',
+				source_file,
+				'-qscale:a',
+				'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
+				'-y',
+				rewrite_path(target_file.replace(/flac$/, 'mp3')),
+			]);
+
+			proc.exit(-1);
+		} else {
+			fs.copy_file(source_file, rewrite_path(target_file));
+		}
 	} catch (err) {
-		// Ignore
-	}
-
-	if (source_file.endsWith('.flac') && options.transcode_flac) {
-		io.dup2(io.open('/dev/null'), 1);
-		io.dup2(io.open('/dev/null'), 2);
-
-		proc.exec('ffmpeg', [
-			'-i',
-			source_file,
-			'-qscale:a',
-			'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
-			'-y',
-			rewrite_path_case(target_file.replace(/flac$/, 'mp3')),
-		]);
-	} else {
-		fs.copy_file(source_file, rewrite_path_case(target_file));
+		println2(err.stack);
+		proc.exit(1);
 	}
 }
 
@@ -168,10 +190,10 @@ function delete_file(source_file, target_file, options) {
  *
  * @returns {string}
  */
-function rewrite_path_case(abs_file_path) {
+function rewrite_path(abs_file_path) {
+	// Convert case
 	const dirs = abs_file_path.split('/');
 
-	//let warn = false;
 	var parent_dir = '/';
 
 	for (var i = 0; i < dirs.length; i++) {
@@ -187,9 +209,6 @@ function rewrite_path_case(abs_file_path) {
 
 			if (name.toLowerCase() === dir.toLowerCase() && name !== dir) {
 				dirs[i] = name;
-
-				//warn = true;
-
 				break;
 			}
 		}
@@ -203,17 +222,8 @@ function rewrite_path_case(abs_file_path) {
 		return_path = fs.join(return_path, dirs[i]);
 	}
 
-	/*
-	if (warn) {
-		console.log(
-			`Warning: path`,
-			checkedPath,
-			`has been changed to`,
-			returnPath,
-			`to avoid errors`
-		);
-	}
-	*/
+	// Replace chars
+	return_path = return_path.replace(/"/g, "'");
 
 	return return_path;
 }
