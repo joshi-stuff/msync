@@ -12,7 +12,7 @@ const init_draw_modes = require('./draw_modes.js');
 /**
  * @returns {void}
  */
-function filter() {
+function configure() {
 	wui.init();
 
 	var error;
@@ -192,4 +192,4 @@ function visit_directories(dir) {
 	return Object.keys(dirs);
 }
 
-return filter;
+return configure;

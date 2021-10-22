@@ -1,7 +1,7 @@
 const term = require('term');
 
 const config = require('./config.js');
-const filter = require('./filter.js');
+const configure = require('./configure.js');
 const refresh = require('./refresh.js');
 const status = require('./status.js');
 const sync = require('./sync.js');
@@ -34,6 +34,15 @@ app.init = function (args) {
 	if (touch) {
 		app.touch();
 	}
+};
+
+/**
+ *
+ *
+ * @returns {void}
+ */
+app.configure = function () {
+	configure();
 };
 
 /**
@@ -85,15 +94,6 @@ app.diff = function () {
 		});
 
 	println('Done');
-};
-
-/**
- *
- *
- * @returns {void}
- */
-app.filter = function () {
-	filter();
 };
 
 /**

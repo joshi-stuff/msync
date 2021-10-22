@@ -35,8 +35,8 @@ function showHelp() {
 	println2('Available commands:');
 	println2('');
 	println2('  · init <source path> [-t]');
+	println2('  · configure');
 	println2('  · diff');
-	println2('  · filter');
 	println2('  · refresh');
 	println2('  · sync [-y]');
 	println2('  · touch');
@@ -48,13 +48,13 @@ function showHelp() {
 	println2('    <source path>: path to mirror source');
 	println2('    -t:            invoke touch after initialization');
 	println2('');
+	println2('Configure command:');
+	println2('');
+	println2('  Edit configuration (eg: filtering or transcoding).');
+	println2('');
 	println2('Diff command:');
 	println2('');
 	println2('  Compare mirror and source directories.');
-	println2('');
-	println2('Filter command:');
-	println2('');
-	println2('  Filter source folders using include/exclude criteria.');
 	println2('');
 	println2('Refresh command:');
 	println2('');
