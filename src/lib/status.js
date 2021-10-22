@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const io = require('io');
-const term = require('term');
 
 const config = require('./config.js');
 
@@ -43,6 +42,22 @@ status.diff = function () {
 
 	const from = status.last;
 	const to = get_tree_status('.', config.source_path);
+
+	// Apply filtering
+	const dirs = config.filter.directories;
+	const include = config.filter.mode === 'include';
+
+	Object.keys(to)
+		.filter(function (filePath) {
+			const matches = dirs.find(function (dir) {
+				return filePath.startsWith(dir + '/');
+			});
+
+			return include ? !matches : !!matches;
+		})
+		.forEach(function (key) {
+			delete to[key];
+		});
 
 	// New files
 	Object.entries(to).forEach(function (entry) {
