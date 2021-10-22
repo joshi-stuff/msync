@@ -41,23 +41,7 @@ status.diff = function () {
 	const comparison = {};
 
 	const from = status.last;
-	const to = get_tree_status('.', config.source_path);
-
-	// Apply filtering
-	const dirs = config.filter.directories;
-	const include = config.filter.mode === 'include';
-
-	Object.keys(to)
-		.filter(function (filePath) {
-			const matches = dirs.find(function (dir) {
-				return filePath.startsWith(dir + '/');
-			});
-
-			return include ? !matches : !!matches;
-		})
-		.forEach(function (key) {
-			delete to[key];
-		});
+	const to = filter(get_tree_status('.', config.source_path));
 
 	// New files
 	Object.entries(to).forEach(function (entry) {
@@ -118,10 +102,36 @@ status.save = function () {
  * @throws {Error}
  */
 status.touch = function () {
-	status.last = get_tree_status('.', config.source_path);
+	status.last = filter(get_tree_status('.', config.source_path));
 
 	status.save();
 };
+
+/**
+ * @param {Status} status
+ * @returns {Status}
+ * @throws {Error}
+ */
+function filter(status) {
+	status = Object.assign({}, status);
+
+	const dirs = config.filter.directories;
+	const include = config.filter.mode === 'include';
+
+	Object.keys(status)
+		.filter(function (filePath) {
+			const matches = dirs.find(function (dir) {
+				return filePath.startsWith(dir + '/');
+			});
+
+			return include ? !matches : !!matches;
+		})
+		.forEach(function (key) {
+			delete status[key];
+		});
+
+	return status;
+}
 
 /**
  *
