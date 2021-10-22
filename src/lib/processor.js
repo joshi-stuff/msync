@@ -1,6 +1,7 @@
 const fs = require('fs');
 const io = require('io');
 const proc = require('proc');
+const $ = require('shell');
 const term = require('term');
 
 const log_dir = '/tmp/msync.log';
@@ -147,19 +148,53 @@ function copy_file(source_file, target_file, options) {
 
 		fs.mkdirp(rewrite_target_dir);
 
+		// Copy file, optionally transcoding it
 		if (source_file.endsWith('.flac') && options.transcode_flac) {
-			proc.exec('ffmpeg', [
-				'-i',
-				source_file,
-				'-qscale:a',
-				'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
-				'-y',
-				rewrite_path(target_file.replace(/flac$/, 'mp3')),
-			]);
+			target_file = rewrite_path(target_file.replace(/flac$/, 'mp3'));
 
-			proc.exit(-1);
+			function transcode() {
+				// TODO: maybe use sox to convert?
+				proc.exec('ffmpeg', [
+					'-i',
+					source_file,
+					'-qscale:a',
+					'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
+					'-y',
+					target_file,
+				]);
+
+				proc.exit(-1);
+			}
+
+			if (options.unify_artist) {
+				proc.fork(true, transcode);
+			} else {
+				transcode();
+			}
 		} else {
-			fs.copy_file(source_file, rewrite_path(target_file));
+			target_file = rewrite_path(target_file);
+
+			fs.copy_file(source_file, target_file);
+		}
+
+		// Unify artist if needed
+		if (options.unify_artist) {
+			const x = {};
+
+			$('kid3-cli', target_file, '-c', 'get albumartist').pipe(x).do();
+
+			const albumartist = x.out.trim();
+
+			if (albumartist) {
+				$(
+					'kid3-cli',
+					target_file,
+					'-c',
+					'set artist "' + albumartist + '"',
+					'-c',
+					'set albumartist ""'
+				).do();
+			}
 		}
 	} catch (err) {
 		println2(err.stack);

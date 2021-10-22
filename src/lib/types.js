@@ -45,6 +45,7 @@ const ModificationStatus = {
  *
  * @typedef {object} ProcessOptions
  * @property {boolean} transcode_flac
+ * @property {boolean} unify_artist
  */
 
 // TODO: processor callback

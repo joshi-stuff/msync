@@ -42,6 +42,12 @@ const config = {
 	 * @type {boolean}
 	 */
 	transcode_flac: true,
+
+	/**
+	 * Whether to unify albumartist and artist into just artist
+	 * @type {boolean}
+	 */
+	unify_artist: false,
 };
 
 // Load configuration from disk if it exists
@@ -53,6 +59,7 @@ if (fs.exists(config_js_path)) {
 	config.filter.mode = cfg.filter.mode;
 	config.source_path = cfg.source_path;
 	config.transcode_flac = cfg.transcode_flac;
+	config.unify_artist = cfg.unify_artist;
 
 	if (config.filter === undefined) {
 		config.filter = {};
@@ -65,6 +72,9 @@ if (fs.exists(config_js_path)) {
 	}
 	if (config.transcode_flac === undefined) {
 		config.transcode_flac = true;
+	}
+	if (config.unify_artist === undefined) {
+		config.unify_artist = false;
 	}
 }
 
@@ -103,7 +113,8 @@ config.save = function () {
 	configJs += "    mode: '" + config.filter.mode + "',\n";
 	configJs += '  },\n';
 	configJs += "  source_path: '" + config.source_path + "',\n";
-	configJs += '  transcode_flac: ' + config.transcode_flac + '\n';
+	configJs += '  transcode_flac: ' + config.transcode_flac + ',\n';
+	configJs += '  unify_artist: ' + config.unify_artist + ',\n';
 	configJs += '};';
 
 	fs.write_file(fs.join(msync_path, 'config.js'), configJs);

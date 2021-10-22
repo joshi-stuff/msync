@@ -93,6 +93,7 @@ function do_sync(cpu_list, done_list) {
 		comparison,
 		{
 			transcode_flac: config.transcode_flac,
+			unify_artist: config.unify_artist,
 		},
 		{
 			copied: function (file_name) {
