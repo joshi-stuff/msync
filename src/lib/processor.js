@@ -4,6 +4,8 @@ const proc = require('proc');
 const $ = require('shell');
 const term = require('term');
 
+const mover = require('./mover.js');
+
 const log_dir = '/tmp/msync.log';
 const println2 = term.println2;
 
@@ -95,12 +97,11 @@ processor.process = function (
 			// Queue a new child
 			const file_name = modification[0];
 
+			const source_file = fs.join(source_path, file_name);
+			const target_file = fs.join(target_path, file_name);
+
 			const pid = proc.fork(function () {
-				copy_file(
-					fs.join(source_path, file_name),
-					fs.join(target_path, file_name),
-					options
-				);
+				copy_file(source_file, target_file, options);
 			});
 
 			children[pid] = file_name;
@@ -143,60 +144,43 @@ function copy_file(source_file, target_file, options) {
 	io.dup2(fd, 2);
 
 	try {
-		const target_dir = fs.dirname(target_file);
-		const rewrite_target_dir = rewrite_path(target_dir);
+		target_file = rewrite_path(target_file);
 
-		fs.mkdirp(rewrite_target_dir);
-
-		// Copy file, optionally transcoding it
 		if (source_file.endsWith('.flac') && options.transcode_flac) {
-			target_file = rewrite_path(target_file.replace(/flac$/, 'mp3'));
+			target_file = target_file.replace(/flac$/, 'mp3');
+		}
 
-			function transcode() {
-				// TODO: maybe use sox to convert?
-				proc.exec('ffmpeg', [
-					'-i',
-					source_file,
-					'-qscale:a',
-					'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
-					'-y',
-					target_file,
-				]);
+		const tmp_file =
+			'/tmp/msync.' + proc.getpid() + get_extension(target_file);
 
-				proc.exit(-1);
-			}
-
-			if (options.unify_artist) {
-				proc.fork(true, transcode);
-			} else {
-				transcode();
-			}
+		// Copy or transcode file
+		if (options.transcode_flac && source_file.endsWith('.flac')) {
+			$(
+				'ffmpeg',
+				'-i',
+				source_file,
+				'-qscale:a',
+				'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
+				'-y',
+				tmp_file
+			).do();
 		} else {
-			target_file = rewrite_path(target_file);
-
-			fs.copy_file(source_file, target_file);
+			fs.copy_file(source_file, tmp_file);
 		}
 
 		// Unify artist if needed
 		if (options.unify_artist) {
-			const x = {};
+			const album_artist = get_album_artist(source_file);
 
-			$('kid3-cli', target_file, '-c', 'get albumartist').pipe(x).do();
-
-			const albumartist = x.out.trim();
-
-			if (albumartist) {
-				$(
-					'kid3-cli',
-					target_file,
-					'-c',
-					'set artist "' + albumartist + '"',
-					'-c',
-					'set albumartist ""'
-				).do();
+			if (album_artist) {
+				set_unified_artist(tmp_file, album_artist);
 			}
 		}
+
+		// Move to final destination
+		mover.move(tmp_file, target_file);
 	} catch (err) {
+		println2('===========================================================');
 		println2(err.stack);
 		proc.exit(1);
 	}
@@ -217,6 +201,28 @@ function delete_file(source_file, target_file, options) {
 	} else {
 		fs.unlink(target_file);
 	}
+}
+
+/**
+ * @param {string} file
+ * @returns {string}
+ */
+function get_album_artist(file) {
+	const x = {};
+
+	$('kid3-cli', file, '-c', 'get albumartist').pipe(x).do();
+
+	return x.out.trim();
+}
+
+/**
+ * @param {string} file
+ * @returns {string}
+ */
+function get_extension(file) {
+	const i = file.lastIndexOf('.');
+
+	return file.substring(i);
 }
 
 /**
@@ -262,4 +268,20 @@ function rewrite_path(abs_file_path) {
 
 	return return_path;
 }
+
+/**
+ * @param {string} file
+ * @param {string} artist
+ */
+function set_unified_artist(file, artist) {
+	$(
+		'kid3-cli',
+		file,
+		'-c',
+		'set artist "' + artist + '"',
+		'-c',
+		'set albumartist ""'
+	).do();
+}
+
 return processor;
