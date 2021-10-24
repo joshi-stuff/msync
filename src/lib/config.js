@@ -70,6 +70,12 @@ if (fs.exists(config_js_path)) {
 	if (config.filter.mode === undefined) {
 		config.filter.mode = 'exclude';
 	}
+	if (config.source_path.endsWith('/')) {
+		config.source_path = config.source_path.substring(
+			0,
+			config.source_path.length - 1
+		);
+	}
 	if (config.transcode_flac === undefined) {
 		config.transcode_flac = true;
 	}

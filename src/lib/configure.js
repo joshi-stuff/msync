@@ -75,7 +75,7 @@ function do_filter(list) {
  * @returns {void}
  */
 function get_directories(list, source_path) {
-	const prefix_len = fs.normalize_path(source_path).length;
+	const prefix_len = fs.normalize_path(source_path).length + 1;
 
 	list.set_items(
 		visit_directories(source_path)
