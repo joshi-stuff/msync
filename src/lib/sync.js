@@ -103,7 +103,9 @@ function do_sync(cpu_list, done_list) {
 				wui.redraw();
 
 				status.last[file_name] = comparison[file_name].to;
+
 				maybe_save_status();
+				check_abort();
 			},
 
 			deleted: function (file_name) {
@@ -113,12 +115,17 @@ function do_sync(cpu_list, done_list) {
 				wui.redraw();
 
 				delete status.last[file_name];
+
 				maybe_save_status();
+				check_abort();
 			},
 
 			queue_updated: function (children) {
 				cpu_list.set_lines(Object.values(children));
 				wui.redraw();
+
+				maybe_save_status();
+				check_abort();
 			},
 		}
 	);
@@ -137,6 +144,27 @@ function do_sync(cpu_list, done_list) {
 
 		return key !== tui.KEY_ESC;
 	});
+}
+
+/**
+ * Abort synchronization if ESC was pressed
+ *
+ * @returns {void}
+ */
+function check_abort() {
+	tui.timeout(0);
+
+	try {
+		if (tui.getch() === tui.KEY_ESC) {
+			tui.end();
+			term.println2('\nmsync: synchronization aborted!\n');
+			proc.exit(1);
+		}
+	} catch (err) {
+		// ignore
+	}
+
+	tui.timeout(null);
 }
 
 /**
