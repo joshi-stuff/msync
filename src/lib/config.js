@@ -39,19 +39,20 @@ const config = {
 
 	/**
 	 * Whether to transcode .flac into .mp3
-	 * @type {boolean}
+	 * @type {boolean|'upsample'}
 	 */
-	transcode_flac: true,
+	transcode_flac: 'upsample',
 
 	/**
 	 * Whether to unify albumartist and artist into just artist
 	 * @type {boolean}
 	 */
-	unify_artist: false,
+	unify_artist: true,
 };
 
 // Load configuration from disk if it exists
 if (fs.exists(config_js_path)) {
+	const defaults = Object.assign({}, config);
 	const cfg = require(config_js_path);
 
 	config.filter = cfg.filter || {};
@@ -61,14 +62,11 @@ if (fs.exists(config_js_path)) {
 	config.transcode_flac = cfg.transcode_flac;
 	config.unify_artist = cfg.unify_artist;
 
-	if (config.filter === undefined) {
-		config.filter = {};
-	}
 	if (config.filter.directories === undefined) {
-		config.filter.directories = [];
+		config.filter.directories = defaults.filter.directories;
 	}
 	if (config.filter.mode === undefined) {
-		config.filter.mode = 'exclude';
+		config.filter.mode = defaults.filter.mode;
 	}
 	if (config.source_path.endsWith('/')) {
 		config.source_path = config.source_path.substring(
@@ -77,10 +75,10 @@ if (fs.exists(config_js_path)) {
 		);
 	}
 	if (config.transcode_flac === undefined) {
-		config.transcode_flac = true;
+		config.transcode_flac = defaults.transcode_flac;
 	}
 	if (config.unify_artist === undefined) {
-		config.unify_artist = false;
+		config.unify_artist = defaults.unify_artist;
 	}
 }
 

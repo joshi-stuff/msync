@@ -81,10 +81,8 @@ processor.process = function (
 					throw new Error(
 						'Process of file failed: ' +
 							finished_file_name +
-							' (see ' +
+							' (see logs at ' +
 							log_dir +
-							'/' +
-							pid +
 							')'
 					);
 				}
@@ -101,7 +99,7 @@ processor.process = function (
 			const target_file = fs.join(target_path, file_name);
 
 			const pid = proc.fork(function () {
-				copy_file(source_file, target_file, options);
+				copy_file(file_name, source_file, target_file, options);
 			});
 
 			children[pid] = file_name;
@@ -123,13 +121,11 @@ processor.process = function (
 		delete children[pid];
 		callback.queue_updated(children);
 	});
-
-	// Remove log directory
-	fs.rmdir(log_dir, true);
 };
 
 /**
  *
+ * @param {string} file_name
  * @param {string} source_file
  * @param {string} target_file
  * @param {ProcessOptions} options
@@ -137,8 +133,10 @@ processor.process = function (
  * @returns {void}
  * @throws {Error}
  */
-function copy_file(source_file, target_file, options) {
-	const fd = io.create(log_dir + '/' + proc.getpid());
+function copy_file(file_name, source_file, target_file, options) {
+	const log_file = fs.join(log_dir, file_name + '.log');
+	fs.mkdirp(fs.dirname(log_file));
+	const fd = io.create(log_file);
 
 	io.dup2(fd, 1);
 	io.dup2(fd, 2);
@@ -146,7 +144,7 @@ function copy_file(source_file, target_file, options) {
 	try {
 		target_file = rewrite_path(target_file);
 
-		if (source_file.endsWith('.flac') && options.transcode_flac) {
+		if (source_file.endsWith('.flac') && options.transcode_flac === true) {
 			target_file = target_file.replace(/flac$/, 'mp3');
 		}
 
@@ -155,15 +153,28 @@ function copy_file(source_file, target_file, options) {
 
 		// Copy or transcode file
 		if (options.transcode_flac && source_file.endsWith('.flac')) {
-			$(
-				'ffmpeg',
-				'-i',
-				source_file,
-				'-qscale:a',
-				'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
-				'-y',
-				tmp_file
-			).do();
+			switch (options.transcode_flac) {
+				case 'upsample': {
+					switch (get_sample_rate(source_file)) {
+						case 44100:
+							resample('88.2k', source_file, tmp_file);
+							break;
+
+						case 48000:
+							resample('192k', source_file, tmp_file);
+							break;
+
+						default:
+							fs.copy_file(source_file, tmp_file);
+							break;
+					}
+					break;
+				}
+
+				default:
+					transcode(source_file, tmp_file);
+					break;
+			}
 		} else {
 			fs.copy_file(source_file, tmp_file);
 		}
@@ -226,6 +237,37 @@ function get_extension(file) {
 }
 
 /**
+ * @param {string} file
+ * @returns {number} sample rate in Hz
+ */
+function get_sample_rate(file) {
+	const x = {};
+
+	$('metaflac', '--show-sample-rate', file).pipe(x).do();
+
+	return Number(x.out.trim());
+}
+
+/**
+ * @param {number} sample_rate
+ * @param {string} source_file
+ * @param {string} target_file
+ * @returns {void}
+ */
+function resample(sample_rate, source_file, target_file) {
+	$(
+		'sox',
+		'-V',
+		source_file,
+		'-r',
+		sample_rate,
+		'-b',
+		'16',
+		target_file
+	).do();
+}
+
+/**
  *
  * @param {string} abs_file_path
  *
@@ -281,6 +323,23 @@ function set_unified_artist(file, artist) {
 		'set artist "' + artist + '"',
 		'-c',
 		'set albumartist ""'
+	).do();
+}
+
+/**
+ * @param {string} source_file
+ * @param {string} target_file
+ * @returns {void}
+ */
+function transcode(source_file, target_file) {
+	$(
+		'ffmpeg',
+		'-i',
+		source_file,
+		'-qscale:a',
+		'0', // see https://trac.ffmpeg.org/wiki/Encode/MP3
+		'-y',
+		target_file
 	).do();
 }
 
