@@ -117,7 +117,12 @@ config.save = function () {
 	configJs += "    mode: '" + config.filter.mode + "',\n";
 	configJs += '  },\n';
 	configJs += "  source_path: '" + config.source_path + "',\n";
-	configJs += '  transcode_flac: ' + config.transcode_flac + ',\n';
+	configJs +=
+		'  transcode_flac: ' +
+		(config.transcode_flac === 'upsample'
+			? "'upsample'"
+			: config.transcode_flac) +
+		',\n';
 	configJs += '  unify_artist: ' + config.unify_artist + ',\n';
 	configJs += '};';
 
