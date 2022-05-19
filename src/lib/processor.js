@@ -161,7 +161,7 @@ function copy_file(file_name, source_file, target_file, options) {
 							break;
 
 						case 48000:
-							resample('192k', source_file, tmp_file);
+							resample('96k', source_file, tmp_file);
 							break;
 
 						default:
@@ -307,6 +307,9 @@ function rewrite_path(abs_file_path) {
 
 	// Replace chars
 	return_path = return_path.replace(/"/g, "'");
+	return_path = return_path.replace(/\*/g, '_');
+	return_path = return_path.replace(/\?/g, '_');
+	return_path = return_path.replace(/:/g, '_');
 
 	return return_path;
 }
