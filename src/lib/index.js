@@ -7,6 +7,11 @@ const println2 = term.println2;
 
 const VERSION = '0.0.0';
 
+// TODO: create a TUI app where F1 is help, F2 config, F3 sync, and so on
+// TODO: if started in a directory with no config launch F2
+// TODO: if started in a directory with config launch F3
+// TODO: in F3, first diff, then confirm with ENTER or any other key
+
 return function (argv) {
 	const cmd = argv[2];
 
